@@ -7,7 +7,8 @@ $vnetAddressPrefix = "10.0.0.0/16"
 $subnetAddressPrefix = "10.0.0.0/24"
 $publicIpAddressName = "linuxboxpip"
 $sshKeyName = "linuxboxsshkey"
-$sshKeyPublicKey = Get-Content -Path "C:\Users\vital\.ssh\id_ed25519.pub"
+$sshKeyPath = "C:\Users\vital\.ssh\id_ed25519.pub"
+$sshKeyPublicKey = $null
 $vmName = "matebox"
 $vmImage = "Ubuntu2204"
 $vmSize = "Standard_B1s"
@@ -28,7 +29,26 @@ New-AzNetworkSecurityGroup -Name $networkSecurityGroupName -ResourceGroupName $r
 $subnet  = New-AzVirtualNetworkSubnetConfig -Name $subnetName  -AddressPrefix $subnetAddressPrefix
 $Vnet = New-AzVirtualNetwork -Name $virtualNetworkName -ResourceGroupName $resourceGroupName -Location $location -AddressPrefix $vnetAddressPrefix -Subnet $subnet
 $publicIp = New-AzPublicIpAddress -Name $publicIpAddressName -ResourceGroupName $resourceGroupName -AllocationMethod Static -DomainNameLabel $dnsPrefix -Location $location
-New-AzSshKey -ResourceGroupName $resourceGroupName -Name $sshKeyName -PublicKey $sshKeyPublicKey
+
+
+
+if (Test-Path -Path $sshKeyPath) {
+    Write-Host "SSH public key found, loading..."
+    $sshKeyPublicKey = Get-Content -Path $sshKeyPath -Raw
+} else {
+    Write-Host "SSH public key not found at $sshKeyPath, will create SSH key resource without public key."
+    $sshKeyPublicKey = $null
+}
+
+
+Write-Host "Creating SSH key resource $sshKeyName ..."
+if ($sshKeyPublicKey) {
+    New-AzSshKey -ResourceGroupName $resourceGroupName -Name $sshKeyName -PublicKey $sshKeyPublicKey
+} else {
+    New-AzSshKey -ResourceGroupName $resourceGroupName -Name $sshKeyName
+}
+
+
 
 New-AzVm `
   -ResourceGroupName $resourceGroupName `
@@ -40,4 +60,5 @@ New-AzVm `
   -SubnetName $subnetName `
   -SecurityGroupName $networkSecurityGroupName `
   -PublicIpAddressName $publicIpAddressName `
+  -AdminUsername "azureuser" `
   -SshKeyName $sshKeyName
