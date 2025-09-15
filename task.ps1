@@ -48,8 +48,6 @@ if ($sshKeyPublicKey) {
     New-AzSshKey -ResourceGroupName $resourceGroupName -Name $sshKeyName
 }
 
-
-
 New-AzVm `
   -ResourceGroupName $resourceGroupName `
   -Location $location `
